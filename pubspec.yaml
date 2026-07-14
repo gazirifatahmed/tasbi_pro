@@ -2,37 +2,59 @@ name: tasbih_pro
 description: "A Professional Tasbih Counter Flutter App."
 publish_to: 'none'
 
-# Version Code updated to 5 to push into production smoothly
-version: 1.0.4+5
+# প্লে স্টোরে নতুন আপডেটের জন্য ভার্সন ও বিল্ড নম্বর বাড়ানো হলো
+version: 1.0.7+8
 
 environment:
-  sdk: '>=3.0.0 <4.0.0'
+  sdk: '>=3.3.0 <4.0.0'
 
 dependencies:
   flutter:
     sdk: flutter
   cupertino_icons: ^1.0.8
   url_launcher: ^6.3.0
-  provider: ^6.1.1
-  shared_preferences: ^2.2.2
-  intl: ^0.20.2
+  provider: ^6.1.2
+  shared_preferences: ^2.3.0
+  intl: ^0.20.3
   vibration: ^3.1.8
-  fl_chart: ^1.2.0
-  audioplayers: ^6.0.0
+  fl_chart: ^0.69.0 
+  audioplayers: ^6.1.0 
   change_app_package_name: ^1.5.0
   in_app_review: ^2.0.9
+  
+  # Firebase এবং Notifications
+  firebase_core: ^3.2.0
+  firebase_analytics: ^11.2.0
+  firebase_messaging: ^15.2.0 
+  flutter_local_notifications: ^18.0.1
+
+  sqflite: ^2.4.3
+  path: ^1.9.1
+  get: ^4.7.3
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^3.0.0
-  flutter_launcher_icons: ^0.13.1
+  flutter_lints: ^4.0.0
+  flutter_launcher_icons: ^0.13.1  # ✅ অ্যাপ আইকন জেনারেট করার জন্য
+  flutter_native_splash: ^2.4.4     # ✅ নেটিভ স্প্ল্যাশ স্ক্রিন ফিক্স করার জন্য এখানে আনা হলো
 
 flutter_launcher_icons:
   android: "launcher_icon"
   ios: true
   image_path: "assets/images/app_icon.png"
   min_sdk_android: 21 
+
+# স্প্ল্যাশ স্ক্রিনের সাদা ব্যাকগ্রাউন্ড রিমুভ এবং আইকন সেটিংস充কনফিগারেশন
+flutter_native_splash:
+  color: "#050B08" # আপনার অ্যাপের ডার্ক বেস কালার
+  image: "assets/images/app_icon.png"
+  android_12:
+    color: "#050B08"
+    image: "assets/images/app_icon.png"
+    icon_background_color: "#050B08" 
+  android: true
+  ios: true
 
 flutter:
   uses-material-design: true

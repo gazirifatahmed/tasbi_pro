@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../main.dart'; // ThemeProvider এর জন্য সঠিক পাথ
 import 'counter_screen.dart';
-import 'history_screen.dart';
+import 'daily_insights_screen.dart'; // নতুন ইনসাইটস স্ক্রিনটি ইম্পোর্ট করা হলো
 import 'settings_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -21,17 +23,18 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // এখানে পেজগুলোকে লিস্টে রাখা হয়েছে যাতে প্রতিবার সুইচ করার সময় রিফ্রেশ হয়
+    final themeColor = Provider.of<ThemeProvider>(context).selectedThemeColor;
+
+    // UI অক্ষুণ্ণ রেখে হিস্ট্রির জায়গায় চার্ট স্ক্রিন কানেক্ট করা হলো
     final List<Widget> screens = [
       const CounterScreen(),
-      const HistoryScreen(), // এটি এখন ডাটা সেভ করার পর নতুন ডাটা দেখাবে
+      const DailyInsightsScreen(), 
       SettingsScreen(
         onBackToHome: () => _switchToTab(0),
       ),
     ];
 
     return Scaffold(
-      // IndexedStack এর বদলে সরাসরি বডি ব্যবহার করা হয়েছে ডাটা রিফ্রেশ নিশ্চিত করতে
       body: screens[_index],
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _index,
@@ -40,7 +43,7 @@ class _HomeScreenState extends State<HomeScreen> {
             _index = i;
           });
         },
-        selectedItemColor: Colors.green,
+        selectedItemColor: themeColor, // অ্যাপের ডাইনামিক থিম কালার অ্যাসাইন করা হলো
         unselectedItemColor: Colors.grey,
         type: BottomNavigationBarType.fixed,
         items: const [

@@ -1,12 +1,21 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.rifat.tasbihpro"> <!-- প্যাকেজ নেম আপডেট করা হয়েছে -->
+    package="com.rifat.tasbihpro"> 
 
     <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <application
         android:label="Tasbih Pro"
         android:name="${applicationName}"
         android:icon="@mipmap/launcher_icon">
+        
+        <meta-data
+            android:name="io.flutter.embedding.android.ImpellerBackend"
+            android:value="false" />
+        
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_channel_id"
+            android:value="high_importance_channel" />
         
         <activity
             android:name=".MainActivity"
@@ -24,6 +33,11 @@
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>
+
+            <intent-filter>
+                <action android:name="FLUTTER_NOTIFICATION_CLICK" />
+                <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>
         

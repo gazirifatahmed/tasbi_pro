@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "225450599326",
+    "project_id": "tasbi-pro",
+    "storage_bucket": "tasbi-pro.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:225450599326:android:41867f8cfe843a89882c8f",
+        "android_client_info": {
+          "package_name": "com.rifat.tasbihpro"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCW7xAxyMnGdEa5C4TyXVC3HezQmRSsLqg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -3,14 +3,36 @@ import 'dart:convert';
 
 class StorageService {
   static const String _historyKey = 'tasbih_history';
+  static const String _themeTypeKey = 'selected_theme_type';
+  static const String _themeColorKey = 'selected_theme_color';
 
-  // সেশন সেভ করা (প্রতিটি জিকিরকে ইউনিক টাইমস্ট্যাম্প দিয়ে সেভ করা হচ্ছে)
+  // থিম টাইপ সেভ ও রিড
+  static Future<void> saveThemeType(String typeStr) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_themeTypeKey, typeStr);
+  }
+
+  static Future<String?> getThemeType() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_themeTypeKey);
+  }
+
+  // থিম কালার সেভ ও রিড
+  static Future<void> saveThemeColor(int colorValue) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_themeColorKey, colorValue);
+  }
+
+  static Future<int?> getThemeColor() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getInt(_themeColorKey);
+  }
+
   static Future<void> saveSession(String dhikrName, int count) async {
     if (count == 0) return;
     final prefs = await SharedPreferences.getInstance();
     List<String> history = prefs.getStringList(_historyKey) ?? [];
     
-    // বর্তমান সময় এবং তারিখ সহ ডাটা অবজেক্ট
     Map<String, dynamic> newRecord = {
       'id': DateTime.now().millisecondsSinceEpoch.toString(),
       'name': dhikrName,
@@ -19,7 +41,6 @@ class StorageService {
       'time': "${DateTime.now().hour.toString().padLeft(2, '0')}:${DateTime.now().minute.toString().padLeft(2, '0')}",
     };
 
-    // নতুন ডাটা সবার উপরে যোগ হবে
     history.insert(0, jsonEncode(newRecord));
     await prefs.setStringList(_historyKey, history);
   }

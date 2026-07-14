@@ -7,6 +7,7 @@ import 'dart:math' as math;
 import 'package:in_app_review/in_app_review.dart'; 
 import 'package:shared_preferences/shared_preferences.dart'; 
 import '../services/storage_service.dart';
+import 'package:tasbih_pro/database/database_helper.dart';
 import '../main.dart';
 
 class CounterScreen extends StatefulWidget {
@@ -35,7 +36,7 @@ class _CounterScreenState extends State<CounterScreen>
   late final AnimationController _beadController;
   late final AnimationController _bgAnimationController;
   late final AnimationController _countBounceController;
-  late Animation<double> _countBounceAnim;
+  late final Animation<double> _countBounceAnim;
 
   @override
   void initState() {
@@ -70,48 +71,61 @@ class _CounterScreenState extends State<CounterScreen>
     super.dispose();
   }
 
+  // 🛠️ অটো-সেভ লজিক
   void _onDhikrChanged(String newDhikr) async {
-    if (count > 0) await StorageService.saveSession(currentDhikr, count);
+    if (count > 0) {
+      final oldDhikr = currentDhikr;
+      final oldStatus = count;
+      
+      StorageService.saveSession(oldDhikr, oldStatus);
+      DatabaseHelper.instance.insertOrUpdateZikr(oldDhikr, oldStatus).then((_) {
+        debugPrint('Auto-saved previous session: $oldDhikr -> $oldStatus');
+      }).catchError((e) {
+        debugPrint('Failed to auto-save: $e');
+      });
+    }
+    
     setState(() {
       currentDhikr = newDhikr;
-      count = 0;
+      count = 0; 
     });
   }
 
-  // ইন-অ্যাপ রিভিউ পপ-আপ দেখানোর সম্পূর্ণ আপডেটেড ও শক্তিশালী মেথড
+  // 🛠️ আপডেটেড রিভিউ ট্রিগার মেথড (লাইফটাইম ক্লিক ট্র্যাকিং)
   void _triggerInAppReview() async {
     try {
       final prefs = await SharedPreferences.getInstance();
       bool hasRated = prefs.getBool('has_user_rated_tasbih') ?? false;
 
-      debugPrint('=== ইন-অ্যাপ রিভিউ ট্রিগার লজিক শুরু হয়েছে ===');
-      debugPrint('ব্যবহারকারী কি আগে রেটিং দিয়েছেন?: $hasRated');
+      // প্রতি ক্লিকে লাইফটাইম কাউন্টার ১ করে বাড়বে
+      int totalClicks = (prefs.getInt('total_dhikr_clicks') ?? 0) + 1;
+      await prefs.setInt('total_dhikr_clicks', totalClicks);
 
-      // টেস্টিং এর সুবিধার্থে এবং প্লে কনসোলের ক্যাশ এরর এড়াতে hasRated চেক সাময়িক শিথিল রাখতে পারেন
-      final InAppReview inAppReview = InAppReview.instance;
-      
-      // গুগল প্লে সার্ভিস এভেইলেবল কিনা চেক করা হচ্ছে
-      bool isAvailable = await inAppReview.isAvailable();
-      debugPrint('গুগল প্লে ইন-অ্যাপ রিভিউ কি এই ডিভাইসে সচল?: $isAvailable');
-      
-      if (isAvailable) {
-        debugPrint('গুগল প্লে স্টোরের কাছে পপ-আপের রিকোয়েস্ট পাঠানো হচ্ছে...');
-        await inAppReview.requestReview();
-        await prefs.setBool('has_user_rated_tasbih', true);
-        debugPrint('রিকোয়েস্ট সফলভাবে পাঠানো হয়েছে!');
-      } else {
-        debugPrint('প্লে সার্ভিস রেডি নেই, ব্যাকআপ হিসেবে স্টোর লিস্টিং ট্রাই করা হচ্ছে...');
-        // যদি পপ-আপ কোনোভাবেই সাপোর্ট না করে, ইউজারকে সরাসরি প্লে-স্টোর পেজে নিয়ে যাবে (বিকল্প পথ)
-        // await inAppReview.openStoreListing(appStoreId: 'com.rifat.tasbihpro');
+      debugPrint('=== লাইফটাইম টোটাল জিকির সংখ্যা: $totalClicks ===');
+
+      // শুধুমাত্র প্রথমবার ইন্সটলের পর সর্বমোট ৩৩ তম ক্লিকে রিভিউ পপ-আপ রিকোয়েস্ট যাবে
+      if (totalClicks == 33 && !hasRated) {
+        debugPrint('=== ইন-অ্যাপ রিভিউ ট্রিগার লজিক শুরু হয়েছে ===');
+        final InAppReview inAppReview = InAppReview.instance;
+        bool isAvailable = await inAppReview.isAvailable();
+        
+        if (isAvailable) {
+          await inAppReview.requestReview();
+          await prefs.setBool('has_user_rated_tasbih', true);
+          debugPrint('রিকোয়েস্ট সফলভাবে পাঠানো হয়েছে!');
+        }
       }
     } catch (e) {
       debugPrint('In-App Review Error: $e');
     }
   }
 
+  // 🛠️ আপডেটেড ইনক্রিমেন্ট মেথড
   void _increment() async {
     setState(() => count++);
-    _countBounceController.forward(from: 0).then((_) => _countBounceController.reverse());
+    _countBounceController.forward(from: 0).then((_) {
+      if (mounted) _countBounceController.reverse();
+    });
     _beadController.forward(from: 0);
 
     if (isSoundOn) {
@@ -123,21 +137,19 @@ class _CounterScreenState extends State<CounterScreen>
       }
     }
 
-    // ৩৩ বার হলে স্পেশাল ভাইব্রেশন এবং রেটিং পপ-আপ ট্রিগার হবে
+    // バックグラウンドで সর্বমোট জিকির সংখ্যা ট্র্যাক ও পপ-আপ চেক করা
+    _triggerInAppReview();
+
+    // ভাইব্রেশন ও হেপটিক ফিডব্যাক লজিক
     if (count == 33) {
-      debugPrint('কাউন্টার ঠিক ৩৩ এ পৌঁছেছে! রিভিউ মেথড কল করা হচ্ছে...');
       if (await Vibration.hasVibrator() ?? false) {
-        Vibration.vibrate(pattern: [0, 200, 100, 200, 100, 200]);
+        VibrateFeedback.heavyVibrations();
       } else {
         HapticFeedback.heavyImpact();
       }
-      
-      _triggerInAppReview();
     } else {
+      // সাধারণ ক্লিকে শুধুমাত্র স্ট্যান্ডার্ড লাইট হেপটিক ফিডব্যাক
       HapticFeedback.selectionClick();
-      if (await Vibration.hasVibrator() ?? false) {
-        Vibration.vibrate(duration: 40);
-      }
     }
   }
 
@@ -146,13 +158,14 @@ class _CounterScreenState extends State<CounterScreen>
     final tp = Provider.of<ThemeProvider>(context);
     final gold = tp.selectedThemeColor;
     final isDark = tp.isDarkMode;
-    final bgBase = isDark ? const Color(0xFF050B08) : const Color(0xFFF5F0E8);
+    
+    final themeData = Theme.of(context);
+    final bgBase = themeData.scaffoldBackgroundColor; 
 
     return Scaffold(
       backgroundColor: bgBase,
       body: Stack(
         children: [
-          // Background Animation Layer
           Positioned.fill(
             child: AnimatedBuilder(
               animation: _bgAnimationController,
@@ -165,8 +178,6 @@ class _CounterScreenState extends State<CounterScreen>
               ),
             ),
           ),
-
-          // Tasbih Beads Layer
           Positioned.fill(
             child: AnimatedBuilder(
               animation: _beadController,
@@ -178,8 +189,6 @@ class _CounterScreenState extends State<CounterScreen>
               ),
             ),
           ),
-
-          // UI Layer
           SafeArea(
             child: LayoutBuilder(
               builder: (context, constraints) {
@@ -187,16 +196,16 @@ class _CounterScreenState extends State<CounterScreen>
                   height: constraints.maxHeight,
                   child: Column(
                     children: [
-                      _buildTopBar(gold, isDark),
+                      _buildTopBar(gold, themeData.cardColor),
                       const Spacer(flex: 2),
                       _buildArabicDisplay(gold),
                       const SizedBox(height: 16),
-                      _buildLCDDisplay(gold, isDark),
+                      _buildLCDDisplay(gold, themeData.cardColor),
                       const Spacer(),
                       _buildMainControls(gold),
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 24),
                       _buildSaveButton(gold),
-                      const SizedBox(height: 14),
+                      const SizedBox(height: 16),
                     ],
                   ),
                 );
@@ -208,7 +217,7 @@ class _CounterScreenState extends State<CounterScreen>
     );
   }
 
-  Widget _buildTopBar(Color gold, bool isDark) {
+  Widget _buildTopBar(Color gold, Color cardBg) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
       child: Row(
@@ -226,7 +235,7 @@ class _CounterScreenState extends State<CounterScreen>
             allDhikrs: dhikrList,
             selected: currentDhikr,
             gold: gold,
-            isDark: isDark,
+            cardBg: cardBg,
             onChanged: _onDhikrChanged,
           ),
         ],
@@ -257,26 +266,24 @@ class _CounterScreenState extends State<CounterScreen>
           fontWeight: FontWeight.bold,
           height: 1.5,
           letterSpacing: 1.5,
-          shadows: [Shadow(color: gold.withValues(alpha: 0.4), blurRadius: 12)],
+          shadows: [Shadow(color: gold.withOpacity(0.4), blurRadius: 12)],
         ),
       ),
     );
   }
 
-  Widget _buildLCDDisplay(Color gold, bool isDark) {
+  Widget _buildLCDDisplay(Color gold, Color cardBg) {
     return ScaleTransition(
       scale: _countBounceAnim,
       child: Container(
         width: 155,
         height: 155,
         decoration: BoxDecoration(
-          color: isDark
-              ? Colors.black.withValues(alpha: 0.65)
-              : Colors.white.withValues(alpha: 0.75),
+          color: cardBg.withOpacity(0.85), 
           borderRadius: BorderRadius.circular(32),
-          border: Border.all(color: gold.withValues(alpha: 0.35), width: 1.5),
+          border: Border.all(color: gold.withOpacity(0.35), width: 1.5),
           boxShadow: [
-            BoxShadow(color: gold.withValues(alpha: 0.2), blurRadius: 30, spreadRadius: 2),
+            BoxShadow(color: gold.withOpacity(0.2), blurRadius: 30, spreadRadius: 2),
           ],
         ),
         child: Center(
@@ -307,14 +314,14 @@ class _CounterScreenState extends State<CounterScreen>
               gradient: RadialGradient(
                 center: const Alignment(-0.3, -0.3),
                 colors: [
-                  Colors.white.withValues(alpha: 0.4),
+                  Colors.white.withOpacity(0.4),
                   gold,
-                  gold.withAlpha(200),
+                  gold.withOpacity(0.8),
                 ],
               ),
               boxShadow: [
-                BoxShadow(color: gold.withValues(alpha: 0.45), blurRadius: 30, offset: const Offset(0, 10)),
-                BoxShadow(color: Colors.white.withValues(alpha: 0.2), blurRadius: 10, offset: const Offset(-5, -5), spreadRadius: -2),
+                BoxShadow(color: gold.withOpacity(0.45), blurRadius: 30, offset: const Offset(0, 10)),
+                BoxShadow(color: Colors.white.withOpacity(0.2), blurRadius: 10, offset: const Offset(-5, -5), spreadRadius: -2),
               ],
             ),
             child: const Center(child: Icon(Icons.touch_app, size: 68, color: Colors.white)),
@@ -334,8 +341,8 @@ class _CounterScreenState extends State<CounterScreen>
         height: 54,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          border: Border.all(color: color.withValues(alpha: 0.5), width: 1.5),
-          color: color.withValues(alpha: 0.06),
+          border: Border.all(color: color.withOpacity(0.5), width: 1.5),
+          color: color.withOpacity(0.06),
         ),
         child: Icon(icon, color: color, size: 26),
       ),
@@ -343,57 +350,104 @@ class _CounterScreenState extends State<CounterScreen>
   }
 
   Widget _buildSaveButton(Color gold) {
-    final goldLight = Color.lerp(gold, Colors.white, 0.3)!;
-    final goldDark = Color.lerp(gold, Colors.black, 0.4)!;
+    // প্রিমিয়াম মেটালিক লুকের জন্য ৩ লেয়ারের শেড কালার তৈরি
+    final goldLight = Color.lerp(gold, Colors.white, 0.25)!;
+    final goldDark = Color.lerp(gold, Colors.black, 0.35)!;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 32),
-      child: InkWell(
-        onTap: () async {
-          if (count > 0) {
-            await StorageService.saveSession(currentDhikr, count);
-            setState(() => count = 0);
-            if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: const Text("Progress Saved!"), backgroundColor: gold),
-              );
-            }
-          }
-        },
-        borderRadius: BorderRadius.circular(36),
-        child: Container(
-          height: 58,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(36),
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [goldLight, gold, goldDark],
-            ),
-            boxShadow: [BoxShadow(color: gold.withValues(alpha: 0.5), blurRadius: 20, offset: const Offset(0, 8))],
-            border: Border.all(color: Colors.white.withValues(alpha: 0.3), width: 1),
+      padding: const EdgeInsets.symmetric(horizontal: 44), // দুইপাশে প্রফেশনাল স্পেসিং
+      child: Container(
+        height: 56, // প্রিমিয়াম ক্যাপসুল সাইজ হাইট
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(28),
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [goldLight, gold, goldDark], // মেটালিক ৩ডি গ্রেডিয়েন্ট
           ),
-          child: const Center(
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.save_rounded, color: Colors.white, size: 22),
-                SizedBox(width: 10),
-                Text(
-                  "SAVE PROGRESS",
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w800,
-                    fontSize: 15,
-                    letterSpacing: 1.5,
+          boxShadow: [
+            BoxShadow(
+              color: gold.withOpacity(0.4),
+              blurRadius: 16,
+              offset: const Offset(0, 6), // চমৎকার ড্রপ শ্যাডো ইফেক্ট
+            ),
+            BoxShadow(
+              color: Colors.white.withOpacity(0.15),
+              blurRadius: 4,
+              offset: const Offset(0, -2), // ওপরের দিকে হালকা গ্লো
+            ),
+          ],
+          border: Border.all(
+            color: Colors.white.withOpacity(0.25), // গ্লাস ফিনিশ বর্ডার লাইন
+            width: 1,
+          ),
+        ),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: () async {
+              if (count > 0) {
+                await StorageService.saveSession(currentDhikr, count);
+                await DatabaseHelper.instance.insertOrUpdateZikr(currentDhikr, count); 
+                
+                if (!mounted) return;
+                setState(() => count = 0);
+                
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: const Text(
+                      "Progress Saved Successfully!", 
+                      style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)
+                    ), 
+                    backgroundColor: goldDark,
+                    duration: const Duration(seconds: 2),
                   ),
-                ),
-              ],
+                );
+              }
+            },
+            borderRadius: BorderRadius.circular(28),
+            child: const Center(
+              child: Row(
+                mainAxisSize: MainAxisSize.min, // কনটেন্টকে ঠিক মাঝখানে লকড রাখবে
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.save_rounded, 
+                    color: Colors.white, 
+                    size: 22,
+                  ),
+                  SizedBox(width: 10), // আইকন ও টেক্সটের মধ্যকার পারফেক্ট গ্যাপ
+                  Text(
+                    "SAVE PROGRESS",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w800, // বোল্ড ও প্রিমিয়াম ফন্ট ওয়েট
+                      fontSize: 15,
+                      letterSpacing: 1.5, // প্রিমিয়াম লুকের জন্য লেটার স্পেসিং
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
       ),
     );
+  }
+}
+
+class VibrateFeedback {
+  static void heavyVibrations() async {
+    try {
+      if (await Vibration.hasVibrator() ?? false) {
+        VibrateFeedback.heavyVibrationsImpl();
+      }
+    } catch (_) {}
+  }
+
+  static void heavyVibrationsImpl() {
+    Vibration.vibrate(pattern: [0, 200, 100, 200, 100, 200]);
   }
 }
 
@@ -418,8 +472,8 @@ class PremiumBackgroundPainter extends CustomPainter {
           center: Alignment.center,
           radius: 1.4,
           colors: isDark
-              ? [baseColor.withValues(alpha: 0.14), Colors.transparent]
-              : [baseColor.withValues(alpha: 0.06), Colors.transparent],
+              ? [baseColor.withOpacity(0.14), Colors.transparent]
+              : [baseColor.withOpacity(0.06), Colors.transparent],
         ).createShader(Offset.zero & size),
     );
 
@@ -457,12 +511,12 @@ class PremiumBackgroundPainter extends CustomPainter {
 
       canvas.drawRRect(rrect, Paint()
         ..style = PaintingStyle.fill
-        ..color = baseColor.withValues(alpha: baseOpacity));
+        ..color = baseColor.withOpacity(baseOpacity));
 
       canvas.drawRRect(rrect, Paint()
         ..style = PaintingStyle.stroke
         ..strokeWidth = 1.8
-        ..color = baseColor.withValues(alpha: baseOpacity * 2.0)
+        ..color = baseColor.withOpacity(baseOpacity * 2.0)
         ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4));
 
       canvas.restore();
@@ -477,14 +531,15 @@ class PremiumBackgroundPainter extends CustomPainter {
         Offset(x, y),
         ps,
         Paint()
-          ..color = baseColor.withValues(alpha: rng.nextDouble() * (isDark ? 0.28 : 0.12))
+          ..color = baseColor.withOpacity(rng.nextDouble() * (isDark ? 0.28 : 0.12))
           ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 1.5),
       );
     }
   }
 
   @override
-  bool shouldRepaint(covariant PremiumBackgroundPainter old) => true;
+  bool shouldRepaint(covariant PremiumBackgroundPainter old) => 
+      old.animationValue != animationValue || old.baseColor != baseColor || old.isDark != isDark;
 }
 
 class RealisticTasbihPainter extends CustomPainter {
@@ -503,7 +558,7 @@ class RealisticTasbihPainter extends CustomPainter {
       );
 
     canvas.drawPath(path, Paint()
-      ..color = color.withValues(alpha: 0.25)
+      ..color = color.withOpacity(0.25)
       ..strokeWidth = 2.5
       ..style = PaintingStyle.stroke);
 
@@ -515,14 +570,14 @@ class RealisticTasbihPainter extends CustomPainter {
       final pos = metrics.getTangentForOffset(totalLen * t)!.position;
 
       canvas.drawCircle(pos + const Offset(3, 6), 18, Paint()
-        ..color = Colors.black.withValues(alpha: 0.28)
+        ..color = Colors.black.withOpacity(0.28)
         ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5));
 
       canvas.drawCircle(pos, 18, Paint()
         ..shader = RadialGradient(
           center: const Alignment(-0.4, -0.4),
           colors: [
-            Colors.white.withValues(alpha: 0.85),
+            Colors.white.withOpacity(0.85),
             color,
             Color.lerp(color, Colors.black, 0.45)!,
           ],
@@ -540,14 +595,14 @@ class _DhikrSelector extends StatelessWidget {
   final List<Map<String, String>> allDhikrs;
   final String selected;
   final Color gold;
-  final bool isDark;
+  final Color cardBg;
   final ValueChanged<String> onChanged;
 
   const _DhikrSelector({
     required this.allDhikrs,
     required this.selected,
     required this.gold,
-    required this.isDark,
+    required this.cardBg,
     required this.onChanged,
   });
 
@@ -556,29 +611,35 @@ class _DhikrSelector extends StatelessWidget {
     return DropdownButtonHideUnderline(
       child: DropdownButton<String>(
         value: selected,
-        dropdownColor: isDark ? const Color(0xFF142920) : Colors.white,
+        dropdownColor: cardBg, 
         icon: Icon(Icons.arrow_drop_down_rounded, color: gold),
+        alignment: Alignment.centerRight,
         items: allDhikrs.map((d) {
-          return DropdownMenuItem(
+          return DropdownMenuItem<String>(
             value: d['latin'],
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  d['latin']!,
-                  style: TextStyle(color: gold, fontSize: 15, fontWeight: FontWeight.w700),
-                ),
-                Text(
-                  d['arabic']!,
-                  textDirection: TextDirection.rtl,
-                  style: TextStyle(color: gold.withValues(alpha: 0.72), fontSize: 13),
-                ),
-              ],
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    d['latin']!,
+                    style: TextStyle(color: gold, fontSize: 14, fontWeight: FontWeight.w700),
+                  ),
+                  const SizedBox(width: 12),
+                  Text(
+                    d['arabic']!,
+                    textDirection: TextDirection.rtl,
+                    style: TextStyle(color: gold.withOpacity(0.72), fontSize: 13, fontWeight: FontWeight.normal),
+                  ),
+                ],
+              ),
             ),
           );
         }).toList(),
-        onChanged: (v) => onChanged(v!),
+        onChanged: (v) {
+          if (v != null) onChanged(v);
+        },
       ),
     );
   }

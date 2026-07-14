@@ -8,8 +8,9 @@ if (keystorePropertiesFile.exists()) {
 
 plugins {
     id("com.android.application")
-    id("kotlin-android")
+    id("org.jetbrains.kotlin.android") 
     id("dev.flutter.flutter-gradle-plugin")
+    id("com.google.gms.google-services") 
 }
 
 android {
@@ -18,12 +19,14 @@ android {
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
+        isCoreLibraryDesugaringEnabled = true 
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
 
+    // ✅ jvmTarget ওয়ার্নিং ফিক্স করার জন্য সঠিক DSL ব্যবহার করা হলো
     kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_17.toString()
+        jvmTarget = "17"
     }
 
     signingConfigs {
@@ -40,9 +43,8 @@ android {
         minSdk = flutter.minSdkVersion
         targetSdk = 36 
         
-        // প্লে কনসোলে প্রোডাকশন রিলিজের জন্য ভার্সন কোড ৫ এবং নেম ১.০.৪ করা হলো
-        versionCode = 5 
-        versionName = "1.0.4"
+        versionCode = 8
+        versionName = "1.0.7"
         
         multiDexEnabled = true
     }
@@ -52,6 +54,7 @@ android {
             signingConfig = signingConfigs.getByName("release")
             isMinifyEnabled = true
             isShrinkResources = true
+            // ✅ Unresolved reference ফিক্স করা হলো (G ছোট হাতের হবে)
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
     }
@@ -63,4 +66,9 @@ flutter {
 
 dependencies {
     implementation("androidx.multidex:multidex:2.0.1")
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")
+
+    implementation(platform("com.google.firebase:firebase-bom:34.15.0"))
+    implementation("com.google.firebase:firebase-analytics")
+    implementation("com.google.firebase:firebase-messaging")
 }
