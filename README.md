@@ -1,11 +1,29 @@
-<img width="817" height="1600" alt="WhatsApp Image 2026-07-14 at 7 40 27 PM" src="https://github.com/user-attachments/assets/eb72817f-299e-482c-8c08-3d34c880313d" />
-<img width="817" height="1600" alt="WhatsApp Image 2026-07-14 at 7 40 27 PM (2)" src="https://github.com/user-attachments/assets/0a544c61-a6de-4040-b598-8a7ea60871ef" />
-<img width="817" height="1600" alt="WhatsApp Image 2026-07-14 at 7 40 27 PM (1)" src="https://github.com/user-attachments/assets/f5a8743f-3e0b-46ac-a653-0a7e7f74c19b" />
-<img width="817" height="1600" alt="WhatsApp Image 2026-07-14 at 7 39 29 PM" src="https://github.com/user-attachments/assets/b680eb5d-0592-4be9-a18f-3c81e4a00234" />
-<img width="1024" height="1024" alt="Gemini_Generated_Image_xbsyj0xbsyj0xbsy" src="https://github.com/user-attachments/assets/d5c75edf-da56-43ca-b9ea-53cbeedbda79" />
+আপনার দেওয়া ইমেজ অ্যাসেট লিংকগুলো দিয়ে একদম প্রিমিয়াম, প্রফেশনাল এবং সুন্দর লেআউটে README.md ফাইলটি গুছিয়ে দিলাম। গিটহাবের প্রোফাইল বা রিপোজিটরিতে এটি দেখতে চমৎকার লাগবে।
+
+নিচের পুরো কোডটি কপি করে আপনার README.md ফাইলে বসিয়ে দিন:
+
+Markdown
 # Tasbih Pro 🕌
 
 A premium, minimal cross-platform Tasbih counter application built using **Flutter** and **Firebase**. Designed with a focus on seamless user experience, visual elegance, and habit-building features to help users maintain consistency in their daily Dhikr.
+
+---
+
+## 📸 App Preview & Interface
+
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/d5c75edf-da56-43ca-b9ea-53cbeedbda79" width="400" alt="Tasbih Pro Banner" />
+</p>
+
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/eb72817f-299e-482c-8c08-3d34c880313d" width="280" alt="Screenshot 1" />
+  <img src="https://github.com/user-attachments/assets/0a544c61-a6de-4040-b598-8a7ea60871ef" width="280" alt="Screenshot 2" />
+  <img src="https://github.com/user-attachments/assets/f5a8743f-3e0b-46ac-a653-0a7e7f74c19b" width="280" alt="Screenshot 3" />
+</p>
+
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/b680eb5d-0592-4be9-a18f-3c81e4a00234" width="280" alt="Screenshot 4" />
+</p>
 
 ---
 
@@ -36,9 +54,7 @@ Before running the project, ensure you have the following installed:
 *   Android Studio / Xcode
 *   Firebase CLI & Tools configured
 
-📱 Download
-Check out the live app on the Google Play Store.
-https://play.google.com/store/apps/details?id=com.rifat.tasbihpro&pcampaignid=web_share
 
+📱 Download: https://play.google.com/store/apps/details?id=com.rifat.tasbihpro&pcampaignid=web_share
 📝 License
 This project is licensed under the MIT License - see the LICENSE file for details.
