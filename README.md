@@ -1,8 +1,4 @@
-আপনার দেওয়া ইমেজ অ্যাসেট লিংকগুলো দিয়ে একদম প্রিমিয়াম, প্রফেশনাল এবং সুন্দর লেআউটে README.md ফাইলটি গুছিয়ে দিলাম। গিটহাবের প্রোফাইল বা রিপোজিটরিতে এটি দেখতে চমৎকার লাগবে।
 
-নিচের পুরো কোডটি কপি করে আপনার README.md ফাইলে বসিয়ে দিন:
-
-Markdown
 # Tasbih Pro 🕌
 
 A premium, minimal cross-platform Tasbih counter application built using **Flutter** and **Firebase**. Designed with a focus on seamless user experience, visual elegance, and habit-building features to help users maintain consistency in their daily Dhikr.
